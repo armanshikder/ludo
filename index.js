@@ -36,7 +36,10 @@ function isValidMove(boardState, color, tokenIndex, roll) {
     const newPos = currentPos + roll;
     if (newPos > 56) return false; 
 
-    for (let step = currentPos + 1; step <= newPos; step++) {
+    // Only check INTERMEDIATE steps (not the landing square) for blockades.
+    // Landing on a blockade is allowed — the piece lands but won't capture.
+    // Capture logic is handled separately in moveToken.
+    for (let step = currentPos + 1; step < newPos; step++) {
         if (step <= 50) {
             const absStep = getAbsolutePosition(color, step);
             for (const checkColor of ['Red', 'Green', 'Yellow', 'Blue']) {
@@ -270,13 +273,19 @@ io.on('connection', (socket) => {
                 if (!safeZones.includes(absPos)) {
                     Object.keys(game.boardState).forEach(otherColor => {
                         if (otherColor !== color) {
-                            game.boardState[otherColor].forEach((otherPos, otherIdx) => {
-                                if (otherPos >= 0 && otherPos <= 50 && getAbsolutePosition(otherColor, otherPos) === absPos) {
-                                    game.boardState[otherColor][otherIdx] = -1; 
-                                    extraTurn = true;
-                                    io.to(GLOBAL_ROOM).emit('tokenCaptured', { color: otherColor });
-                                }
-                            });
+                            const enemyPiecesOnSquare = game.boardState[otherColor].filter(
+                                (otherPos) => otherPos >= 0 && otherPos <= 50 && getAbsolutePosition(otherColor, otherPos) === absPos
+                            ).length;
+
+                            if (enemyPiecesOnSquare === 1) {
+                                game.boardState[otherColor].forEach((otherPos, otherIdx) => {
+                                    if (otherPos >= 0 && otherPos <= 50 && getAbsolutePosition(otherColor, otherPos) === absPos) {
+                                        game.boardState[otherColor][otherIdx] = -1;
+                                        extraTurn = true;
+                                        io.to(GLOBAL_ROOM).emit('tokenCaptured', { color: otherColor });
+                                    }
+                                });
+                            }
                         }
                     });
                 }

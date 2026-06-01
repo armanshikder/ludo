@@ -133,7 +133,7 @@ function isValidMoveClient(boardState, color, tokenIndex, roll) {
     const newPos = currentPos + roll;
     if (newPos > 56) return false;
 
-    for (let step = currentPos + 1; step <= newPos; step++) {
+    for (let step = currentPos + 1; step < newPos; step++) {
         if (step <= 50) {
             const absStep = getAbsolutePosition(color, step);
             for (const checkColor of ['Red', 'Green', 'Yellow', 'Blue']) {
