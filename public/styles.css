@@ -1,16 +1,23 @@
 * { box-sizing: border-box; }
 
-body { 
-    font-family: 'Segoe UI', sans-serif; 
-    background-color: #e4e9f2; 
-    margin: 0; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    height: 100dvh; 
-    overflow: hidden; 
-    overscroll-behavior: none; 
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #e4e9f2;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    
+    /* Smooth vertical scrolling & prevents accidental browser refresh pull-downs */
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     touch-action: manipulation;
+
+    /* Stops annoying blue text-highlighting when tapping tokens/buttons quickly */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 350px; }
@@ -19,11 +26,14 @@ button { background-color: #0066cc; color: white; border: none; padding: 12px; b
 button:active { transform: scale(0.95); }
 button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; }
 
-#game-screen { 
-    width: 100%; max-width: 500px; 
-    height: 100dvh; 
-    display: flex; flex-direction: column; 
-    background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.15); 
+#game-screen {
+    width: 100%;
+    max-width: max(500px, 50%);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: 0 0 30px rgba(0,0,0,0.15);
 }
 
 .top-bar { padding: 15px; text-align: center; background: #fff; border-bottom: 2px solid #eee; z-index: 10; }
@@ -35,20 +45,17 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 }
 
 .ludo-board {
-    display: grid; 
-    grid-template-columns: repeat(15, minmax(0, 1fr)); 
+    display: grid;
+    grid-template-columns: repeat(15, minmax(0, 1fr));
     grid-template-rows: repeat(15, minmax(0, 1fr));
-    
-    /* THE MISSING MAGIC LINE */
-    width: 100%; 
-    
-    max-width: 100%; 
-    max-height: 100%; 
-    aspect-ratio: 1; 
-    background: white; 
-    border: 3px solid #2c3e50; 
-    border-radius: 8px; 
-    position: relative; 
+    width: 100%;
+    max-width: min(100%, calc(100vh - 220px));
+    max-height: 100%;
+    aspect-ratio: 1;
+    background: white;
+    border: 3px solid #2c3e50;
+    border-radius: 8px;
+    position: relative;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
@@ -67,7 +74,7 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 /* --- NEW: The Checkmark --- */
 .base-tick {
     position: absolute; font-size: 2rem; color: #27ae60; font-weight: 900;
-    transform: translate(-50%, -50%); z-index: 4; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transform: translate(-50%, -50%); z-index: 40; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     pointer-events: none;
 }
 
@@ -107,7 +114,22 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
     will-change: left, top, transform; z-index: 10; cursor: pointer; transform: translate3d(-50%, -50%, 0) scale(1);
 }
 
-.token::after { content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px; border-radius: 50%; z-index: 11; }
+.token::after { 
+    content: ''; 
+    position: absolute; 
+    
+    /* 1. Make the invisible box match the pawn's size exactly (100% of 6%) */
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0; 
+    border-radius: 50%; 
+    z-index: 11; 
+    
+    /* 2. Scale it relative to the pawn's size (e.g., 1.5 times larger) */
+    transform: scale(1.7); 
+}
+
 .token:active { transform: translate3d(-50%, -50%, 0) scale(0.85); }
 
 .token-red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000); }
@@ -115,7 +137,7 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 .token-yellow { background: radial-gradient(circle at 30% 30%, #ffff6b, #b3b300); }
 .token-blue { background: radial-gradient(circle at 30% 30%, #6b6bff, #0000cc); }
 
-.token.can-move { animation: pulse 1.2s infinite; z-index: 30 !important; cursor: pointer; }
+.token.can-move { animation: pulse 1.2s infinite; z-index: 999 !important; cursor: pointer; }
 @keyframes pulse {
     0% { transform: translate3d(-50%, -50%, 0) scale(1); box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.7); }
     50% { transform: translate3d(-50%, -50%, 0) scale(1.15); box-shadow: 0 0 20px 8px rgba(255, 255, 255, 1); }
