@@ -36,21 +36,8 @@ function isValidMove(boardState, color, tokenIndex, roll) {
     const newPos = currentPos + roll;
     if (newPos > 56) return false; 
 
-    // Only check INTERMEDIATE steps (not the landing square) for blockades.
-    // Landing on a blockade is allowed — the piece lands but won't capture.
-    // Capture logic is handled separately in moveToken.
-    for (let step = currentPos + 1; step < newPos; step++) {
-        if (step <= 50) {
-            const absStep = getAbsolutePosition(color, step);
-            for (const checkColor of ['Red', 'Green', 'Yellow', 'Blue']) {
-                let piecesAtStep = 0;
-                boardState[checkColor].forEach(p => {
-                    if (p >= 0 && p <= 50 && getAbsolutePosition(checkColor, p) === absStep) piecesAtStep++;
-                });
-                if (piecesAtStep >= 2 && checkColor !== color) return false; 
-            }
-        }
-    }
+    // DELETE THE FOR LOOP THAT WAS HERE
+
     return true;
 }
 
@@ -63,7 +50,8 @@ function nextTurn(game) {
     let next = (game.turn + 1) % game.players.length;
     let loops = 0;
     
-    while (game.winners.includes(game.players[next].id) && loops < 5) {
+    // Check game.winners by player color instead of ephemeral socket ID
+    while (game.winners.includes(game.players[next].color) && loops < 5) {
         next = (next + 1) % game.players.length;
         loops++;
     }
@@ -93,10 +81,12 @@ io.on('connection', (socket) => {
             const player = game.players.find(p => p.id === socket.id);
             if (player) {
                 if (game.status === 'playing') {
-                    if (!game.winners.includes(player.id)) game.winners.push(player.id);
+                    // Push color instead of socket ID
+                    if (!game.winners.includes(player.color)) game.winners.push(player.color);
                     io.to(GLOBAL_ROOM).emit('playerFinished', player.name + ' left the match!');
                     
-                    if (game.players[game.turn].id === socket.id && !game.waitingForMove && !game.isMoving) {
+                    // Prevent softlock by advancing turn immediately if the active player left
+                    if (game.players[game.turn].id === socket.id) {
                         nextTurn(game);
                     }
                 } else {
@@ -107,7 +97,7 @@ io.on('connection', (socket) => {
 
             const anyActive = game.players.some(p => {
                 const s = io.sockets.sockets.get(p.id);
-                return s && s.connected && !game.winners.includes(p.id);
+                return s && s.connected && !game.winners.includes(p.color); 
             });
             if (!anyActive || game.players.length === 0) delete games[GLOBAL_ROOM];
         }
@@ -142,6 +132,9 @@ io.on('connection', (socket) => {
             existingPlayer.id = socket.id;
             
             if (game.status === 'playing') {
+                // Broadcast updated socket mapping to all other connected clients
+                io.to(GLOBAL_ROOM).emit('playersUpdated', game.players);
+
                 socket.emit('rejoinGame', {
                     players: game.players, boardState: game.boardState,
                     turn: game.turn, activePlayerId: game.players[game.turn].id,
@@ -159,7 +152,6 @@ io.on('connection', (socket) => {
         if (game.status !== 'waiting') return socket.emit('error', 'Game has already started! Wait for it to finish.');
         
         if (game.players.length < 4) {
-            // FIX: Smart Color Assignment by scanning used colors instead of array length
             const smartColorOrder = ['Red', 'Yellow', 'Green', 'Blue'];
             const usedColors = game.players.map(p => p.color);
             const assignedColor = smartColorOrder.find(color => !usedColors.includes(color));
@@ -299,15 +291,21 @@ io.on('connection', (socket) => {
             io.to(GLOBAL_ROOM).emit('boardUpdated', game.boardState);
 
             if (game.boardState[color].every(p => p === 56)) {
-                if (!game.winners.includes(player.id)) game.winners.push(player.id);
+                // Push color instead of socket ID
+                if (!game.winners.includes(color)) game.winners.push(color);
                 io.to(GLOBAL_ROOM).emit('playerFinished', player.name);
                 nextTurn(game);
                 return;
             }
 
             if (extraTurn) {
-                game.waitingForMove = false;
-                io.to(GLOBAL_ROOM).emit('extraTurn', player.id);
+                // Only grant extra turn if the player hasn't resigned/left during animation delay
+                if (!game.winners.includes(color)) {
+                    game.waitingForMove = false;
+                    io.to(GLOBAL_ROOM).emit('extraTurn', player.id);
+                } else {
+                    nextTurn(game);
+                }
             } else {
                 nextTurn(game);
             }
@@ -317,13 +315,8 @@ io.on('connection', (socket) => {
 
     socket.on('resetGame', () => {
         const game = games[GLOBAL_ROOM];
-        // Make sure the person resetting is actually in the room
         if (game && game.players.find(p => p.id === socket.id)) {
-            
-            // THE NUCLEAR OPTION: Completely delete the game data from server memory
             delete games[GLOBAL_ROOM];
-            
-            // Broadcast a kill signal to every player connected to the arena
             io.to(GLOBAL_ROOM).emit('arenaReset');
         }
     });
@@ -333,7 +326,6 @@ io.on('connection', (socket) => {
         if (game) {
             const player = game.players.find(p => p.id === socket.id);
             if (player) {
-                // FIX: If they drop connection while waiting in lobby, scrub them entirely so their color is freed
                 if (game.status === 'waiting') {
                     game.players = game.players.filter(p => p.id !== socket.id);
                     io.to(GLOBAL_ROOM).emit('roomUpdate', game);
