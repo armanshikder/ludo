@@ -17,12 +17,11 @@ const toggleCheat = () => { cheatActive = !cheatActive; secretRollValue = null; 
 const handlePressStart = () => { cheatTimer = setTimeout(toggleCheat, 2000); };
 const handlePressEnd = () => clearTimeout(cheatTimer);
 
-secretBtn.addEventListener('mousedown', handlePressStart);
-secretBtn.addEventListener('touchstart', handlePressStart, {passive: true});
-secretBtn.addEventListener('mouseup', handlePressEnd);
-secretBtn.addEventListener('mouseleave', handlePressEnd);
-secretBtn.addEventListener('touchend', handlePressEnd);
-secretBtn.addEventListener('touchcancel', handlePressEnd);
+// Unified pointer events fix double-firing bug
+secretBtn.addEventListener('pointerdown', handlePressStart);
+secretBtn.addEventListener('pointerup', handlePressEnd);
+secretBtn.addEventListener('pointerleave', handlePressEnd);
+secretBtn.addEventListener('pointercancel', handlePressEnd);
 
 function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 function playSound(type) {
@@ -60,7 +59,6 @@ const UI = {
     playersList: document.getElementById('playersList')
 };
 
-// Automatically hide the Room ID input field if it exists in the HTML
 const roomInputBox = document.getElementById('roomId');
 if (roomInputBox) roomInputBox.style.display = 'none';
 
@@ -133,18 +131,8 @@ function isValidMoveClient(boardState, color, tokenIndex, roll) {
     const newPos = currentPos + roll;
     if (newPos > 56) return false;
 
-    for (let step = currentPos + 1; step < newPos; step++) {
-        if (step <= 50) {
-            const absStep = getAbsolutePosition(color, step);
-            for (const checkColor of ['Red', 'Green', 'Yellow', 'Blue']) {
-                let piecesAtStep = 0;
-                boardState[checkColor].forEach(p => {
-                    if (p >= 0 && p <= 50 && getAbsolutePosition(checkColor, p) === absStep) piecesAtStep++;
-                });
-                if (piecesAtStep >= 2 && checkColor !== color) return false; 
-            }
-        }
-    }
+    // DELETE THE FOR LOOP THAT WAS HERE
+
     return true;
 }
 
@@ -238,11 +226,17 @@ function updatePlayerNametags(players, winners = []) {
             const tag = document.createElement('div'); tag.className = 'player-nametag';
             tag.innerText = p.name;
             if (p.id === myId) { tag.style.border = '2px solid #0066cc'; tag.innerText += ' (You)'; }
-            if (winners && winners.includes(p.id)) tag.innerText += ' 👑'; 
+            // Check winners array via color instead of socket ID
+            if (winners && winners.includes(p.color)) tag.innerText += ' 👑'; 
             baseEl.appendChild(tag);
         }
     });
 }
+
+// Keep local roster synchronized with rejoin events
+socket.on('playersUpdated', (players) => {
+    cachedPlayers = players;
+});
 
 socket.on('roomUpdate', (game) => {
     UI.setup.style.display = 'none'; 
@@ -401,10 +395,9 @@ socket.on('gameFullyOver', (winners) => {
     location.reload(); 
 });
 
-// COMPLETELY WIPE THE CLIENT
 socket.on('arenaReset', () => { 
     alert('The Arena was manually reset! All data, players, and history have been wiped.'); 
-    location.reload(); // This forces the browser to refresh, clearing all local variables and UI
+    location.reload(); 
 });
 
 socket.on('boardUpdated', (boardState) => { renderTokens(boardState); });
@@ -537,8 +530,14 @@ function renderTokens(boardState) {
                 scale = 0.7; offsetX = overlapIndex === 0 ? 0 : (overlapIndex === 1 ? -12 : 12);
                 offsetY = overlapIndex === 0 ? -10 : 10;
             } else if (count >= 4) {
-                scale = 0.6; offsetX = overlapIndex % 2 === 0 ? -12 : 12;
-                offsetY = Math.floor(overlapIndex / 2) === 0 ? -12 : 12;
+                let gridSize = Math.ceil(Math.sqrt(count));
+                scale = Math.max(0.35, 1.25 / gridSize);
+                let row = Math.floor(overlapIndex / gridSize);
+                let col = overlapIndex % gridSize;
+                let cellBounds = 24; 
+                let spacing = cellBounds / (gridSize - 1 || 1);
+                offsetX = -(cellBounds / 2) + col * spacing;
+                offsetY = -(cellBounds / 2) + row * spacing;
             }
 
             el.style.left = `calc(${baseLeft} + ${offsetX}px)`;

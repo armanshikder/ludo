@@ -9,13 +9,11 @@ body {
     align-items: center;
     min-height: 100dvh;
     
-    /* Smooth vertical scrolling & prevents accidental browser refresh pull-downs */
     overflow: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     touch-action: manipulation;
 
-    /* Stops annoying blue text-highlighting when tapping tokens/buttons quickly */
     user-select: none;
     -webkit-user-select: none;
 }
@@ -71,7 +69,6 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 
 .base-inner { position: absolute; top: 12%; left: 12%; width: 76%; height: 76%; background: white; border-radius: 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.15); }
 
-/* --- NEW: The Checkmark --- */
 .base-tick {
     position: absolute; font-size: 2rem; color: #27ae60; font-weight: 900;
     transform: translate(-50%, -50%); z-index: 40; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -110,23 +107,19 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 .token {
     position: absolute; width: 6%; height: 6%; border-radius: 50%; border: 2px solid white;
     box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 -2px 5px rgba(0,0,0,0.3);
-    transition: left 0.25s ease-out, top 0.25s ease-out, transform 0.2s ease-out;
+    transition: left 0.25s ease-out, top 0.25s ease-out, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     will-change: left, top, transform; z-index: 10; cursor: pointer; transform: translate3d(-50%, -50%, 0) scale(1);
 }
 
 .token::after { 
     content: ''; 
     position: absolute; 
-    
-    /* 1. Make the invisible box match the pawn's size exactly (100% of 6%) */
     top: 0; 
     left: 0; 
     right: 0; 
     bottom: 0; 
     border-radius: 50%; 
     z-index: 11; 
-    
-    /* 2. Scale it relative to the pawn's size (e.g., 1.5 times larger) */
     transform: scale(1.7); 
 }
 
