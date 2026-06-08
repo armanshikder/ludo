@@ -51,15 +51,24 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
     max-height: 100%;
     aspect-ratio: 1;
     background: white;
-    border: 3px solid #2c3e50;
+    border: 0.125rem solid #2c3e50;
     border-radius: 8px;
     position: relative;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    overflow: hidden;
 }
 
 .cell { border: 1px solid rgba(0,0,0,0.08); min-width: 0; min-height: 0; }
 
-.base-overlay { position: absolute; width: 40%; height: 40%; z-index: 2; border: 2px solid #2c3e50; box-sizing: border-box; transition: box-shadow 0.3s; }
+.base-overlay {
+    position: absolute; 
+    width: 40%;
+    height: 40%;
+    z-index: 2;
+    /* border: 2px solid #2c3e50; */
+    box-sizing: border-box;
+    transition: box-shadow 0.3s;
+}
 .base-red { background: #ff4d4d; top: 0; left: 0; border-radius: 4px 0 0 0; }
 .base-green { background: #4dff4d; top: 0; right: 0; border-radius: 0 4px 0 0; }
 .base-yellow { background: #ffff4d; bottom: 0; right: 0; border-radius: 0 0 4px 0; }
@@ -81,7 +90,25 @@ button:disabled { background-color: #ccc; cursor: not-allowed; transform: none; 
 .base-yellow .player-nametag { bottom: 4px; right: 4px; }
 .base-blue .player-nametag { bottom: 4px; left: 4px; }
 
-.center-overlay { position: absolute; top: 40%; left: 40%; width: 20%; height: 20%; z-index: 2; border: 2px solid #2c3e50; background: conic-gradient(from 45deg, #ffff4d 0deg 90deg, #4d4dff 90deg 180deg, #ff4d4d 180deg 270deg, #4dff4d 270deg 360deg); }
+.center-overlay {
+    position: absolute;
+    top: 40%;
+    left: 40%;
+    width: 20%;
+    height: 20%;
+    z-index: 2;
+    /* border: 2px solid #2c3e50; */
+
+    /* FIX: Added 0.5-degree transition windows to force smooth anti-aliasing */
+    background: conic-gradient(
+        from 45deg, 
+        #ffff4d 0deg 89.5deg, 
+        #4d4dff 90deg 179.5deg, 
+        #ff4d4d 180deg 269.5deg, 
+        #4dff4d 270deg 359.5deg,
+        #ffff4d 360deg
+    );
+}
 
 .home-red, .start-red { background-color: #ff4d4d; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
 .home-green, .start-green { background-color: #4dff4d; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
